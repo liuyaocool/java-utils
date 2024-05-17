@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<video class="" autoplay="" playsinline="true" webkit-playsinline="true" x5-playsinline="true" tabindex="2" mediatype="video" loop="loop" src="blob:https://h5eyi.com/803537ae-985e-4010-a517-d7b64fed4480" style="position: absolute; top: 0px; left: 0px;"></video>
+
+<script>
+    //   ffmpeg -i input.webm -c copy output.mp4
+    const record = (HTMLVideoElement.prototype.record = async function (duration_seconds = 60) {
+        const video = this instanceof HTMLVideoElement ? this : document.querySelector("video");
+        video.captureStream = video.captureStream || video.mozCaptureStream;
+        const stream = video.captureStream();
+        // stream.removeTrack(stream.getAudioTracks()[0]);
+        const recorder = new MediaRecorder(stream, {mimeType: "video/webm",});
+        setTimeout(() => recorder.state === "recording" && recorder.stop(), duration_seconds * 1000);
+        console.log(`recording for ${duration_seconds} seconds...`);
+        const blobs = [];
+        await new Promise((resolve, reject) => {
+            // The stop event is thrown either as a result of the MediaRecorder.stop() method being invoked, or when the media stream being captured ends.
+            // In each case, the stop event is preceded by a dataavailable event, making the Blob captured up to that point available for you to use in your application.
+            recorder.onstop = resolve;
+            recorder.onerror = reject;
+            recorder.ondataavailable = (event) => blobs.push(event.data);
+            recorder.start();
+        });
+        // recorder.stream.getTracks().forEach((track) => track.stop());
+        const webm = new Blob(blobs, { type: "video/webm" });
+        // The URL lifetime is tied to the document in the window on which it was created
+        open(URL.createObjectURL(webm));
+        // URL.revokeObjectURL(href);   // 否则不好下载
+        return webm;
+    });
+
+    // const record = (HTMLVideoElement.prototype.record = async function (duration_seconds = 60) {const video = this instanceof HTMLVideoElement ? this : document.querySelector("video");video.captureStream = video.captureStream || video.mozCaptureStream;const stream = video.captureStream();const recorder = new MediaRecorder(stream, {mimeType: "video/webm",});setTimeout(() => recorder.state === "recording" && recorder.stop(), duration_seconds * 1000);console.log(`recording for ${duration_seconds} seconds...`);const blobs = [];await new Promise((resolve, reject) => {recorder.onstop = resolve;recorder.onerror = reject;recorder.ondataavailable = (event) => blobs.push(event.data);recorder.start();});const webm = new Blob(blobs, { type: "video/webm" });open(URL.createObjectURL(webm));return webm;});
+
+    // 只有一个video标签
+    await record(90)
+
+    // 多个video标签
+    await video.record(90)
+
+
+</script>
+</body>
+</html>
