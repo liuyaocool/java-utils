@@ -1,5 +1,7 @@
 package liuyao.utils.http;
 
+import liuyao.utils.annotation.NotNull;
+import liuyao.utils.annotation.Nullable;
 import org.apache.http.*;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.*;
@@ -103,7 +105,10 @@ public class HTTPClient {
                 .build();
     }
 
-    public static RequestConfig getConfig(int connTimeout, int socketTimeout, String proxyHost, int proxyPort) {
+    public static RequestConfig getConfig(
+            int connTimeout, int socketTimeout,
+            @Nullable String proxyHost, int proxyPort
+    ) {
         RequestConfig.Builder build = RequestConfig.custom();
         if (null != proxyHost) {
             build.setProxy(new HttpHost(proxyHost, proxyPort));
@@ -122,20 +127,28 @@ public class HTTPClient {
         }
     }
 
-    public static CloseableHttpResponse http(HttpRequestBase request, RequestConfig customConfig,
-                                             Entry<String, String>... headers) throws IOException {
-        if (headers != null && 0 != headers.length) {
+    private static HttpRequestBase fillHeaders(HttpRequestBase request, Entry<String, String>... headers) {
+        if (null != headers) {
             for (Entry<String, String> header : headers) {
                 request.addHeader(header.getKey(), header.getValue());
             }
         }
+        return request;
+    }
+
+    public static CloseableHttpResponse http(
+            @NotNull HttpRequestBase request,
+            @Nullable RequestConfig customConfig
+    ) throws IOException {
         if (null != customConfig) request.setConfig(customConfig);
         return HTTP_CLIENT.execute(request);
     }
 
-    public static HTTPResponse<String> httpString(HttpRequestBase http, RequestConfig customConfig,
-                                                  Entry<String, String>... headers) throws IOException {
-        CloseableHttpResponse response = http(http, customConfig, headers);
+    public static HTTPResponse<String> httpString(
+            @NotNull HttpRequestBase http,
+            @Nullable RequestConfig customConfig
+    ) throws IOException {
+        CloseableHttpResponse response = http(http, customConfig);
         HTTPResponse<String> respData = new HTTPResponse<>();
         respData.statusLine = response.getStatusLine().toString();
         respData.statusCode = response.getStatusLine().getStatusCode();
@@ -152,30 +165,31 @@ public class HTTPClient {
     }
 
     public static HTTPResponse<String> proxyHttpString(
-            String proxyHost, int proxyPort, HttpRequestBase http, Entry<String, String>... headers
+            @Nullable String proxyHost, int proxyPort,
+            @NotNull HttpRequestBase http
     ) throws IOException {
         RequestConfig config = null;
         if (null != proxyHost) {
             config = getConfig(8000, 16000, proxyHost, proxyPort);
         }
-        return httpString(http, config, headers);
+        return httpString(http, config);
     }
 
     public static HTTPResponse<String> proxyHttpPostJsonString(
             String proxyHost, int proxyPort,
             String url, String body, Entry<String, String>... headers) throws IOException {
-        Entry<String, String>[] entries = new Entry[headers.length + 1];
-        entries[0] = new HeaderEntry<>(HttpHeaders.CONTENT_TYPE, "application/json;charset=utf-8");
-        System.arraycopy(headers, 0, entries, 1, headers.length);
         HttpPost httpPost = new HttpPost(url);
         httpPost.setEntity(new StringEntity(body, StandardCharsets.UTF_8));
-        return proxyHttpString(proxyHost, proxyPort, httpPost, entries);
+        fillHeaders(httpPost, headers);
+        fillHeaders(httpPost, new HeaderEntry<>(HttpHeaders.CONTENT_TYPE, "application/json;charset=utf-8"));
+        return proxyHttpString(proxyHost, proxyPort, httpPost);
     }
 
     public static HTTPResponse<String> httpPostString(String url, String body, Entry<String, String>... headers) throws IOException {
         HttpPost httpPost = new HttpPost(url);
         httpPost.setEntity(new StringEntity(body, StandardCharsets.UTF_8));
-        return httpString(httpPost, null, headers);
+        fillHeaders(httpPost, headers);
+        return httpString(httpPost, null);
     }
 
     public static HTTPResponse<String> httpJsonPostString(
@@ -184,11 +198,11 @@ public class HTTPClient {
     }
 
     public static HTTPResponse<String> httpGet(String url, Entry<String, String>... headers) throws IOException {
-        return httpString(new HttpGet(url), null, headers);
+        return httpString(fillHeaders(new HttpGet(url), headers), null);
     }
 
     public static HTTPResponse httpHead(String url, Entry<String, String>... headers) throws IOException {
-        return httpString(new HttpHead(url), null, headers);
+        return httpString(fillHeaders(new HttpHead(url), headers), null);
     }
 
 }
