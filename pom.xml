@@ -7,7 +7,7 @@
 
     <groupId>liuyao</groupId>
     <artifactId>utils</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 
     <packaging>jar</packaging>
 
@@ -39,6 +39,21 @@
                     <target>${java.version}</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
+            </plugin>
+            <!-- 源码打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version> <!-- 使用最新版本 -->
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>verify</phase> <!-- 绑定到 verify 阶段 -->
+                        <goals>
+                            <goal>jar-no-fork</goal> <!-- 生成 sources.jar -->
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
