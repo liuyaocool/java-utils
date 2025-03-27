@@ -8,6 +8,7 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.WatchEvent;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +41,10 @@ public class IOUtils {
         close(WRITE_MAP.get(path).getChannel(), WRITE_MAP.get(path));
     }
 
+    public static String getReousecesPath(String filename) {
+        return IOUtils.class.getClassLoader().getResource(filename).getPath();
+    }
+
     /**
      * 写入内容到文件
      *  注意：需调用{@link IOUtils#closeWriteChannel(path)}手动关闭
@@ -55,6 +60,29 @@ public class IOUtils {
             buf.flip();
             out.write(buf);
             buf.clear();
+        }
+    }
+
+    public static void coverFile(File file, List<String> contents, Charset encoding) throws IOException {
+        FileOutputStream fos = null;
+        OutputStreamWriter osw = null;
+        BufferedWriter bw = null;
+        PrintWriter pw = null;
+        try {
+            fos = new FileOutputStream(file);
+            osw = new OutputStreamWriter(fos, encoding);
+            bw = new BufferedWriter(osw);
+            if (null != contents & contents.size() > 0){
+                bw.write(contents.get(0) == null ? "" : contents.get(0));
+                for (int i = 1; i < contents.size(); i++) {
+                    bw.newLine();
+                    bw.write(contents.get(i) == null ? "" : contents.get(i));
+                }
+            }
+            pw = new PrintWriter(bw);
+            pw.flush();
+       } finally {
+            close(fos, osw, bw, pw);
         }
     }
 
@@ -102,6 +130,23 @@ public class IOUtils {
         return transferred;
     }
 
+    public static void scanFiles(File file, Consumer<File> consumer) {
+        if (file.isDirectory()){
+            for (File f : file.listFiles()) {
+                scanFiles(f, consumer);
+            }
+        } else {
+            consumer.accept(file);
+        }
+    }
+
+    public static void newFolder(String folder){
+        File targetFile = new File(folder);
+        if(!targetFile.exists()){
+            targetFile.mkdirs();
+        }
+    }
+
     public static long transferTo(ReadableByteChannel src, WritableByteChannel target) throws IOException {
         Objects.requireNonNull(src, "src");
         Objects.requireNonNull(target, "target");
@@ -122,6 +167,27 @@ public class IOUtils {
         try {
             fis = new FileInputStream(path);
             readTextFile(fis, encoding, callback);
+        } finally {
+            close(fis);
+        }
+    }
+
+    public static void readTextFileFromResources(String filename, Consumer<String> callback) throws IOException {
+        readTextFile(IOUtils.class.getClassLoader().getResourceAsStream(filename), callback);
+    }
+
+    public static String readTextFile(InputStream is) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        readTextFile(is, line -> sb.append(line).append("\n"));
+        return sb.toString();
+    }
+
+    public static void readTextFile(File file, Consumer<String> callback) throws IOException {
+        if (file.isDirectory() || !file.exists()) return;
+        InputStream fis = null;
+        try {
+            fis = new FileInputStream(file);
+            readTextFile(fis, callback);
         } finally {
             close(fis);
         }

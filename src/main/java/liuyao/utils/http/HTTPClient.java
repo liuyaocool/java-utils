@@ -1,5 +1,6 @@
 package liuyao.utils.http;
 
+import liuyao.utils.IOUtils;
 import liuyao.utils.annotation.NotNull;
 import liuyao.utils.annotation.Nullable;
 import org.apache.http.*;
@@ -116,18 +117,7 @@ public class HTTPClient {
         return build.setConnectTimeout(connTimeout).setSocketTimeout(socketTimeout).build();
     }
 
-    public static void close(AutoCloseable... closes) {
-        for (AutoCloseable close : closes) {
-            if (close != null && close != HTTP_CLIENT) {
-                try {
-                    close.close();
-                } catch (Exception e) {
-                }
-            }
-        }
-    }
-
-    private static HttpRequestBase fillHeaders(HttpRequestBase request, Entry<String, String>... headers) {
+    public static HttpRequestBase fillHeaders(HttpRequestBase request, Entry<String, String>... headers) {
         if (null != headers) {
             for (Entry<String, String> header : headers) {
                 request.addHeader(header.getKey(), header.getValue());
@@ -159,7 +149,7 @@ public class HTTPClient {
         }
         if (null != response.getEntity())
             respData.body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-        close(response);
+        IOUtils.close(response);
         http.releaseConnection();
         return respData;
     }
