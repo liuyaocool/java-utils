@@ -1,5 +1,6 @@
 package liuyao.utils.crypt;
 
+import liuyao.utils.URLUtils;
 import liuyao.utils.func.BiConsumerEx;
 
 import javax.crypto.Cipher;
@@ -46,12 +47,10 @@ public class RSACrypt {
         RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();   // 得到私钥
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();  // 得到公钥
         return new String[] {
-                base64.encodeToString(publicKey.getEncoded()),
-                base64.encodeToString(privateKey.getEncoded())
+                new String(URLUtils.encode(publicKey.getEncoded()), StandardCharsets.UTF_8),
+                new String(URLUtils.encode(privateKey.getEncoded()), StandardCharsets.UTF_8)
         };
     }
-
-    public final static StringBase64 base64 = new StringBase64('@', '_', '-');
 
     private PrivateKey privateKey;
     private PublicKey publicKey;
@@ -59,8 +58,8 @@ public class RSACrypt {
     public RSACrypt() { }
 
     public RSACrypt init(String pubKey, String priKey) throws InvalidKeySpecException{
-        byte[] pubKeyByte = base64.decodeToByte(pubKey);
-        byte[] priKeyByte = base64.decodeToByte(priKey);
+        byte[] pubKeyByte = URLUtils.decode(pubKey.getBytes(StandardCharsets.UTF_8));
+        byte[] priKeyByte = URLUtils.decode(priKey.getBytes(StandardCharsets.UTF_8));
 
         PKCS8EncodedKeySpec priKeySpec = new PKCS8EncodedKeySpec(priKeyByte);
         X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(pubKeyByte);
@@ -110,7 +109,7 @@ public class RSACrypt {
         });
         print("-- strLen: %s \n", data.length);
 
-        return base64.encodeToString(encryptBytes);
+        return new String(URLUtils.encode(encryptBytes), StandardCharsets.UTF_8);
     }
 
     // RSA解密
@@ -122,7 +121,7 @@ public class RSACrypt {
         // 解密 要加密字符串过长 分开解密问题，且最后一部分不一定是最大可加密长度
         List<byte[]> datas = new ArrayList<>();
         final int[] deTotalLen = {0};
-        byte[] decodeData = base64.decodeToByte(str);
+        byte[] decodeData = URLUtils.decode(str.getBytes(StandardCharsets.UTF_8));
         print("-- strLen: %s  strDeLen: %s \n", str.length(), decodeData.length);
         splitByte(decodeData, keylen, (position, length) -> {
             byte[] deBytes = cipher.doFinal(decodeData, position, length);
